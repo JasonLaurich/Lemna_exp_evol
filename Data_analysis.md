@@ -3,7 +3,24 @@ Data analysis
 JasonL
 31/03/2022
 
-Upload the data, name it, and look at it.
+SECTION 1: Load packages we need.
+
+``` r
+library(reshape2)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+library(lme4)
+library(RLRsim)
+```
+
+    ## Warning: package 'RLRsim' was built under R version 4.0.5
+
+``` r
+library(car)
+```
+
+SECTION 2: Upload the data, name it, and look at it.
 
 ``` r
 setwd("C:/Users/jason/Dropbox/My PC (DESKTOP-IOO274E)/Desktop/Data/DuckweedExpEvol/Git_repo/Lemna_exp_evol")
@@ -149,3 +166,462 @@ head(data)
     ## 4       5     7242  680.212     6383     832.295       2677
     ## 5      NA       NA       NA       NA          NA        712
     ## 6       8    23082 1035.477    18414    1001.604        809
+
+SECTION 3: Data processing. Let’s clean some of this up. This is where
+figure legends can be adjusted, etc.
+
+``` r
+#Generate legend labels for treatment and populations.
+data <- data.frame(lapply(data, function(x) {
+  gsub("RegularK", "Ctl", x)
+}))
+data <- data.frame(lapply(data, function(x) {
+  gsub("SaltK", "Salt", x)
+}))
+data <- data.frame(lapply(data, function(x) {
+  gsub("PLT", "Plt", x)
+}))
+data <- data.frame(lapply(data, function(x) {
+  gsub("BAC", "Bac", x)
+})) 
+data <- data.frame(lapply(data, function(x) {
+  gsub("Bac_Plt", "Holo", x)
+})) 
+data <- data.frame(lapply(data, function(x) {
+  gsub("Wellspring", "W", x)
+})) 
+data <- data.frame(lapply(data, function(x) {
+  gsub("Churchill", "C", x)
+}))
+data <- data.frame(lapply(data, function(x) {
+  gsub("RougePark", "R", x)
+})) 
+
+# Break dataset into different generations so that we can realign the data
+Gen1<- data[,1:20]
+Gen2<- data[,c(1:5,22:36)]
+Gen3<- data[,c(1:5,38:52)]
+Gen4<- data[,c(1:5,54:68)]
+Gen5<- data[,c(1:5,70:84)]
+Gen6<- data[,c(1:5,86:100)]
+Gen7<- data[,c(1:5,102:116)]
+Gen8<- data[,c(1:5,118:132)]
+Gen9<- data[,c(1:5,134:148)]
+Gen10<- data[,c(1:5,150:164)]
+
+# Reassign variable names.
+names(Gen1)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen2)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen3)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen4)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen5)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen6)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen7)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen8)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen9)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen10)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+
+# Assemble into a single dataset
+CWR_1to10<-rbind(Gen1,Gen2,Gen3,Gen4,Gen5,Gen6,Gen7,Gen8,Gen9,Gen10)
+CWR_1to10$Gen<-c(rep(1,360),rep(2,360),rep(3,360),rep(4,360),rep(5,360),rep(6,360),rep(7,360),rep(8,360),rep(9,360),rep(10,360))
+
+#Fix structure of data
+str(CWR_1to10)
+```
+
+    ## 'data.frame':    3600 obs. of  21 variables:
+    ##  $ Pop    : chr  "C" "C" "C" "C" ...
+    ##  $ Med    : chr  "Salt" "Ctl" "Ctl" "Salt" ...
+    ##  $ Trt    : chr  "Plt" "Bac" "Plt" "Plt" ...
+    ##  $ Rep    : chr  "7" "2" "8" "2" ...
+    ##  $ g1ID   : chr  "5" "9" "10" "11" ...
+    ##  $ Pos    : chr  "5" "9" "10" "11" ...
+    ##  $ Edge   : chr  "Edge" "Edge" "Middle" "Middle" ...
+    ##  $ Notes0 : chr  NA NA NA NA ...
+    ##  $ Fr0    : chr  "2" NA "1" "2" ...
+    ##  $ Pix0   : chr  "1399" NA "3217" "2231" ...
+    ##  $ Per0   : chr  "157.58" NA "219.622" "186.995" ...
+    ##  $ Grn0   : chr  "1124" NA "2800" "1889" ...
+    ##  $ GrnPer0: chr  "138.853" NA "210.208" "179.924" ...
+    ##  $ Notes1 : chr  NA NA NA NA ...
+    ##  $ Fr1    : chr  "2" NA "4" "3" ...
+    ##  $ Pix1   : chr  "1810" NA "5190" "2723" ...
+    ##  $ Per1   : chr  "186.056" NA "503.814" "284.292" ...
+    ##  $ Grn1   : chr  "1383" NA "2812" "1968" ...
+    ##  $ GrnPer1: chr  "166.409" NA "461.817" "261.806" ...
+    ##  $ AbsCnt : chr  "198" "218" "151" "318" ...
+    ##  $ Gen    : num  1 1 1 1 1 1 1 1 1 1 ...
+
+``` r
+#Fix factorial variables
+for (i in 1:7){
+  CWR_1to10[,i]<-as.factor(CWR_1to10[,i])
+}
+
+#Fix continous variables
+for (i in 9:13){
+  CWR_1to10[,i]<-as.numeric(CWR_1to10[,i])
+}
+
+for (i in 15:21){
+  CWR_1to10[,i]<-as.numeric(CWR_1to10[,i])
+}
+
+#Let's add a factorial term for generation
+CWR_1to10$FacGen<-as.factor(CWR_1to10$Gen)
+
+# Create an interaction term for treatment and media
+CWR_1to10$Evol <- paste(CWR_1to10$Trt, CWR_1to10$Med, sep="")
+CWR_1to10$Evol<- as.factor(CWR_1to10$Evol)
+
+# Generate summary statistics of interest
+
+# We will use growth rate (increase in surface area) as a proxy for fitness
+CWR_1to10$Grt<-CWR_1to10$Pix1 - CWR_1to10$Pix0
+
+# Calculate aggregation, a measure of how closely packed in fronds are. Lots of phenotypic variation in this trait, though its biological significance isn't clear....
+# Will be calculated as surface area (# pixels) divided by perimeter, so that less aggregated wells (e.g. high perimeter) have a lower score
+CWR_1to10$Agg<-CWR_1to10$Pix1/CWR_1to10$Per1
+
+# We are also going to calculate greeness of the fronds. This could be a fitness-measure, or a trait plausibly associated to variation in growth rate/health.
+CWR_1to10$Hlth<-CWR_1to10$Grn1/CWR_1to10$Pix1
+
+# We will calculate mean frond size, just to see if this phenotype is affected by anything. Again, the biological significance of this is still unclear.
+CWR_1to10$FrAve<-CWR_1to10$Pix1/CWR_1to10$Fr1
+
+# Let's also calculate the change in number of fronds as an alternative measure of growth.
+CWR_1to10$Grt_frd<-CWR_1to10$Fr1-CWR_1to10$Fr0
+
+#Let's create a dataset containing only wells with plants. 
+CWR_plt<-subset(CWR_1to10, CWR_1to10$Trt!= "Bac")
+CWR_plt<-droplevels(CWR_plt)
+```
+
+SECTION 4: data assessment Check normality of data.
+
+``` r
+hist(CWR_1to10$Grt, breaks=20)
+```
+
+![](Data_analysis_files/figure-gfm/data%20assessment-1.png)<!-- -->
+
+``` r
+# That looks OK, let's try breaking this into populations
+
+ggplot(data=CWR_1to10, aes(x = Grt)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ ., scales = "free")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 1218 rows containing non-finite values (stat_bin).
+
+![](Data_analysis_files/figure-gfm/data%20assessment-2.png)<!-- -->
+
+``` r
+# All have long tails to the right, and R especially has an overabundance of small values.
+
+#Wwhat does this look like across generations?
+ggplot(data=CWR_1to10, aes(x = Grt)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Gen, scales = "free")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 1218 rows containing non-finite values (stat_bin).
+
+![](Data_analysis_files/figure-gfm/data%20assessment-3.png)<!-- -->
+
+``` r
+#How about treatment?
+ggplot(data=CWR_1to10, aes(x = Grt)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 1218 rows containing non-finite values (stat_bin).
+
+![](Data_analysis_files/figure-gfm/data%20assessment-4.png)<!-- -->
+
+``` r
+# That looks the best, though I am still curious about logging the data.
+
+CWR_1to10$Log_Grt<-log(CWR_1to10$Grt)
+```
+
+    ## Warning in log(CWR_1to10$Grt): NaNs produced
+
+``` r
+hist(CWR_1to10$Log_Grt, breaks=20)
+```
+
+![](Data_analysis_files/figure-gfm/data%20assessment-5.png)<!-- -->
+
+``` r
+#That looks better
+
+ggplot(data=CWR_1to10, aes(x = Log_Grt)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ ., scales = "free")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 1259 rows containing non-finite values (stat_bin).
+
+![](Data_analysis_files/figure-gfm/data%20assessment-6.png)<!-- -->
+
+``` r
+ggplot(data=CWR_1to10, aes(x = Log_Grt)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 1259 rows containing non-finite values (stat_bin).
+
+![](Data_analysis_files/figure-gfm/data%20assessment-7.png)<!-- -->
+
+``` r
+# OK yes, this now looks quite normal
+
+## What about changes in frond number?
+ggplot(data=CWR_1to10, aes(x = Grt_frd)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 1217 rows containing non-finite values (stat_bin).
+
+![](Data_analysis_files/figure-gfm/data%20assessment-8.png)<!-- -->
+
+``` r
+#Looks OK
+
+###########################OK, onto aggregation ###############
+
+hist(CWR_1to10$Agg, breaks=20)
+```
+
+![](Data_analysis_files/figure-gfm/data%20assessment-9.png)<!-- -->
+
+``` r
+ggplot(data=CWR_1to10, aes(x = Agg)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 1210 rows containing non-finite values (stat_bin).
+
+![](Data_analysis_files/figure-gfm/data%20assessment-10.png)<!-- -->
+
+``` r
+# That actually looks pretty OK.
+
+###########################Health and Greenness? ###############
+
+hist(CWR_1to10$Hlth, breaks=20)
+```
+
+![](Data_analysis_files/figure-gfm/data%20assessment-11.png)<!-- -->
+
+``` r
+ggplot(data=CWR_1to10, aes(x = Hlth)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 1210 rows containing non-finite values (stat_bin).
+
+![](Data_analysis_files/figure-gfm/data%20assessment-12.png)<!-- -->
+
+``` r
+# That actually looks pretty OK.
+
+ggplot(data=CWR_1to10, aes(x = Grn1)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 1210 rows containing non-finite values (stat_bin).
+
+![](Data_analysis_files/figure-gfm/data%20assessment-13.png)<!-- -->
+
+``` r
+# Could log it?
+
+ggplot(data=CWR_1to10, aes(x = log(Grn1))) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 1212 rows containing non-finite values (stat_bin).
+
+![](Data_analysis_files/figure-gfm/data%20assessment-14.png)<!-- -->
+
+``` r
+# Looks better
+
+###########################Frond size? ###############
+
+hist(CWR_1to10$FrAve, breaks=20)
+```
+
+![](Data_analysis_files/figure-gfm/data%20assessment-15.png)<!-- -->
+
+``` r
+ggplot(data=CWR_1to10, aes(x = FrAve)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 1210 rows containing non-finite values (stat_bin).
+
+![](Data_analysis_files/figure-gfm/data%20assessment-16.png)<!-- -->
+
+``` r
+# Yeah that looks great.
+
+#OK, so really growth is the only issue here. I've taken the log of it, and we will also try fitting a model with growth as a polynomial term
+```
+
+SECTION 5: modelling OK, time for some models.
+
+``` r
+CWR_NA<-subset(CWR_plt, CWR_plt$Grt!= "NA")
+
+# 1. Gen - continuous. Pos - edge, random effect. Grt - final pixel#, with initial pix as predictor. med*gen*trt. Pop - random
+Mod_grt<-lmer(Pix1 ~ Pix0 + Med*Trt*Gen + (1|Pop) + (1|Edge), data= CWR_plt)
+```
+
+    ## Warning: Some predictor variables are on very different scales: consider
+    ## rescaling
+
+``` r
+Mod_grt
+```
+
+    ## Linear mixed model fit by REML ['lmerMod']
+    ## Formula: Pix1 ~ Pix0 + Med * Trt * Gen + (1 | Pop) + (1 | Edge)
+    ##    Data: CWR_plt
+    ## REML criterion at convergence: 49836.69
+    ## Random effects:
+    ##  Groups   Name        Std.Dev.
+    ##  Pop      (Intercept) 6368.4  
+    ##  Edge     (Intercept)  784.5  
+    ##  Residual             8617.9  
+    ## Number of obs: 2382, groups:  Pop, 3; Edge, 2
+    ## Fixed Effects:
+    ##        (Intercept)                Pix0             MedSalt              TrtPlt  
+    ##           5242.990               4.385          -11476.375             -48.190  
+    ##                Gen      MedSalt:TrtPlt         MedSalt:Gen          TrtPlt:Gen  
+    ##           1341.335            1086.144            -783.251              44.597  
+    ## MedSalt:TrtPlt:Gen  
+    ##           -117.504  
+    ## fit warnings:
+    ## Some predictor variables are on very different scales: consider rescaling
+
+``` r
+Anova(Mod_grt, type=3)
+```
+
+    ## Analysis of Deviance Table (Type III Wald chisquare tests)
+    ## 
+    ## Response: Pix1
+    ##                 Chisq Df Pr(>Chisq)    
+    ## (Intercept)    1.8677  1     0.1717    
+    ## Pix0        1006.9942  1  < 2.2e-16 ***
+    ## Med          112.2021  1  < 2.2e-16 ***
+    ## Trt            0.0020  1     0.9646    
+    ## Gen          117.0649  1  < 2.2e-16 ***
+    ## Med:Trt        0.5019  1     0.4787    
+    ## Med:Gen       20.2288  1  6.871e-06 ***
+    ## Trt:Gen        0.0653  1     0.7983    
+    ## Med:Trt:Gen    0.2275  1     0.6334    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+# Significant effects of Pix0, Med, Gen, and Med:Gen.
+
+# Test random effects one at a time? I'm not sure how to test both at the same time...
+Mod_grt_pop<-lmer(Pix1 ~ Pix0 + Med*Trt*Gen + (1|Pop), data= CWR_plt)
+```
+
+    ## Warning: Some predictor variables are on very different scales: consider
+    ## rescaling
+
+``` r
+exactRLRT(Mod_grt_pop)
+```
+
+    ## 
+    ##  simulated finite sample distribution of RLRT.
+    ##  
+    ##  (p-value based on 10000 simulated values)
+    ## 
+    ## data:  
+    ## RLRT = 684.8, p-value < 2.2e-16
+
+``` r
+Mod_grt_edge<-lmer(Pix1 ~ Pix0 + Med*Trt*Gen + (1|Edge), data= CWR_plt)
+```
+
+    ## Warning: Some predictor variables are on very different scales: consider
+    ## rescaling
+
+``` r
+exactRLRT(Mod_grt_edge)
+```
+
+    ## 
+    ##  simulated finite sample distribution of RLRT.
+    ##  
+    ##  (p-value based on 10000 simulated values)
+    ## 
+    ## data:  
+    ## RLRT = 4.2125, p-value = 0.0065
+
+OK, so now we are going to generate Log Response Ratios for some traits…
+Reference for calculating LRR’s: Hedges, L. V., Gurevitch, J., & Curtis,
+P. S. (1999). The meta-analysis of response ratios in experimental
+ecology. Ecology, 80(4), 1150-1156.
+
+``` r
+# Effect of inoculating plants with microbial communities
+# Start by calculating statistics for each generation for each treatment.
+melt_LRR<-melt(CWR_1to10, id.vars=c("Pop", "Gen","Trt","Med"), measure.vars= "Grt", na.rm = T)
+Sum_LRR<- ddply(melt_LRR, c("Pop", "Med","Trt","Gen","variable"), summarise,
+                mean = mean(value), sd = sd(value), count=length(value),
+                sem = sd(value)/sqrt(length(value)))
+Sum_LRR_plt<-subset(Sum_LRR, Sum_LRR$Trt!= "BAC")
+Sum_LRR_plt<-droplevels(Sum_LRR_plt)
+#LRR for Ctl media plants
+pop<-3
+med<-2
+gen<-10
+
+LRR_ctl<-data.frame(matrix(ncol=5, nrow=pop*med*gen))
+names(LRR_ctl)<-c('Pop','Med','Gen','LRR','SE')
+LRR_ctl$Pop<-c(rep('C', 20), rep('R', 20), rep('W', 20))
+LRR_ctl$Med<-c(rep('Ctl', 10), rep('Salt', 10),rep('Ctl', 10), rep('Salt', 10),rep('Ctl', 10), rep('Salt', 10))
+Gens<-c(1:10)
+LRR_ctl$Gen<-c(rep(Gens, 6))
+
+for (i in 1:10){
+  #C, Ctl
+  LRR_ctl[i,4]<-log(Sum_LRR_plt[i,6]/Sum_LRR_plt[i+10,6])
+  LRR_ctl[i,5]<-sqrt(Sum_LRR_plt[i,9]/Sum_LRR_plt[i,6] + Sum_LRR_plt[i+10,9]/Sum_LRR_plt[i+10,6])
+  #C, Salt
+  LRR_ctl[i+10,4]<-log(Sum_LRR_plt[i+20,6]/Sum_LRR_plt[i+30,6])
+  LRR_ctl[i+10,5]<-sqrt(Sum_LRR_plt[i+20,9]/Sum_LRR_plt[i+20,6] + Sum_LRR_plt[i+30,9]/Sum_LRR_plt[i+30,6])
+  #R, Ctl
+  LRR_ctl[i+20,4]<-log(Sum_LRR_plt[i+40,6]/Sum_LRR_plt[i+50,6])
+  LRR_ctl[i+20,5]<-sqrt(Sum_LRR_plt[i+40,9]/Sum_LRR_plt[i+40,6] + Sum_LRR_plt[i+50,9]/Sum_LRR_plt[i+50,6])
+  #R, Salt
+  LRR_ctl[i+30,4]<-log(Sum_LRR_plt[i+60,6]/Sum_LRR_plt[i+70,6])
+  LRR_ctl[i+30,5]<-sqrt(Sum_LRR_plt[i+60,9]/Sum_LRR_plt[i+60,6] + Sum_LRR_plt[i+70,9]/Sum_LRR_plt[i+70,6])  
+  #W, Ctl
+  LRR_ctl[i+40,4]<-log(Sum_LRR_plt[i+80,6]/Sum_LRR_plt[i+90,6])
+  LRR_ctl[i+40,5]<-sqrt(Sum_LRR_plt[i+80,9]/Sum_LRR_plt[i+80,6] + Sum_LRR_plt[i+90,9]/Sum_LRR_plt[i+90,6])
+  #W, Salt
+  LRR_ctl[i+50,4]<-log(Sum_LRR_plt[i+100,6]/Sum_LRR_plt[i+110,6])
+  LRR_ctl[i+50,5]<-sqrt(Sum_LRR_plt[i+100,9]/Sum_LRR_plt[i+100,6] + Sum_LRR_plt[i+110,9]/Sum_LRR_plt[i+110,6])
+  
+}
+```

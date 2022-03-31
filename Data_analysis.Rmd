@@ -5,8 +5,20 @@ date: "31/03/2022"
 output: github_document
 ---
 
-Upload the data, name it, and look at it.
-```{r}
+SECTION 1: Load packages we need.
+```{r Packages, message=FALSE}
+library(reshape2)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+library(lme4)
+library(RLRsim)
+library(car)
+```
+
+
+SECTION 2: Upload the data, name it, and look at it.
+```{r Data}
 setwd("C:/Users/jason/Dropbox/My PC (DESKTOP-IOO274E)/Desktop/Data/DuckweedExpEvol/Git_repo/Lemna_exp_evol")
 
 data<-read.table('DW_Exp_Evol_final.txt', na.strings="", header=FALSE, sep='\t')
@@ -17,3 +29,234 @@ names(data)<-c('Pop','Media','Trt','Rep','G1ID','G1Pos','G1Edge','G1_notes0','G1
 head(data)
 ```
 
+SECTION 3: Data processing.
+Let's clean some of this up. This is where figure legends can be adjusted, etc. 
+```{r data processing}
+#Generate legend labels for treatment and populations.
+data <- data.frame(lapply(data, function(x) {
+  gsub("RegularK", "Ctl", x)
+}))
+data <- data.frame(lapply(data, function(x) {
+  gsub("SaltK", "Salt", x)
+}))
+data <- data.frame(lapply(data, function(x) {
+  gsub("PLT", "Plt", x)
+}))
+data <- data.frame(lapply(data, function(x) {
+  gsub("BAC", "Bac", x)
+})) 
+data <- data.frame(lapply(data, function(x) {
+  gsub("Bac_Plt", "Holo", x)
+})) 
+data <- data.frame(lapply(data, function(x) {
+  gsub("Wellspring", "W", x)
+})) 
+data <- data.frame(lapply(data, function(x) {
+  gsub("Churchill", "C", x)
+}))
+data <- data.frame(lapply(data, function(x) {
+  gsub("RougePark", "R", x)
+})) 
+
+# Break dataset into different generations so that we can realign the data
+Gen1<- data[,1:20]
+Gen2<- data[,c(1:5,22:36)]
+Gen3<- data[,c(1:5,38:52)]
+Gen4<- data[,c(1:5,54:68)]
+Gen5<- data[,c(1:5,70:84)]
+Gen6<- data[,c(1:5,86:100)]
+Gen7<- data[,c(1:5,102:116)]
+Gen8<- data[,c(1:5,118:132)]
+Gen9<- data[,c(1:5,134:148)]
+Gen10<- data[,c(1:5,150:164)]
+
+# Reassign variable names.
+names(Gen1)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen2)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen3)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen4)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen5)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen6)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen7)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen8)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen9)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+names(Gen10)<-c('Pop','Med','Trt','Rep','g1ID','Pos','Edge','Notes0','Fr0','Pix0','Per0','Grn0','GrnPer0','Notes1','Fr1','Pix1','Per1','Grn1','GrnPer1','AbsCnt')
+
+# Assemble into a single dataset
+CWR_1to10<-rbind(Gen1,Gen2,Gen3,Gen4,Gen5,Gen6,Gen7,Gen8,Gen9,Gen10)
+CWR_1to10$Gen<-c(rep(1,360),rep(2,360),rep(3,360),rep(4,360),rep(5,360),rep(6,360),rep(7,360),rep(8,360),rep(9,360),rep(10,360))
+
+#Fix structure of data
+str(CWR_1to10)
+
+#Fix factorial variables
+for (i in 1:7){
+  CWR_1to10[,i]<-as.factor(CWR_1to10[,i])
+}
+
+#Fix continous variables
+for (i in 9:13){
+  CWR_1to10[,i]<-as.numeric(CWR_1to10[,i])
+}
+
+for (i in 15:21){
+  CWR_1to10[,i]<-as.numeric(CWR_1to10[,i])
+}
+
+#Let's add a factorial term for generation
+CWR_1to10$FacGen<-as.factor(CWR_1to10$Gen)
+
+# Create an interaction term for treatment and media
+CWR_1to10$Evol <- paste(CWR_1to10$Trt, CWR_1to10$Med, sep="")
+CWR_1to10$Evol<- as.factor(CWR_1to10$Evol)
+
+# Generate summary statistics of interest
+
+# We will use growth rate (increase in surface area) as a proxy for fitness
+CWR_1to10$Grt<-CWR_1to10$Pix1 - CWR_1to10$Pix0
+
+# Calculate aggregation, a measure of how closely packed in fronds are. Lots of phenotypic variation in this trait, though its biological significance isn't clear....
+# Will be calculated as surface area (# pixels) divided by perimeter, so that less aggregated wells (e.g. high perimeter) have a lower score
+CWR_1to10$Agg<-CWR_1to10$Pix1/CWR_1to10$Per1
+
+# We are also going to calculate greeness of the fronds. This could be a fitness-measure, or a trait plausibly associated to variation in growth rate/health.
+CWR_1to10$Hlth<-CWR_1to10$Grn1/CWR_1to10$Pix1
+
+# We will calculate mean frond size, just to see if this phenotype is affected by anything. Again, the biological significance of this is still unclear.
+CWR_1to10$FrAve<-CWR_1to10$Pix1/CWR_1to10$Fr1
+
+# Let's also calculate the change in number of fronds as an alternative measure of growth.
+CWR_1to10$Grt_frd<-CWR_1to10$Fr1-CWR_1to10$Fr0
+
+#Let's create a dataset containing only wells with plants. 
+CWR_plt<-subset(CWR_1to10, CWR_1to10$Trt!= "Bac")
+CWR_plt<-droplevels(CWR_plt)
+```
+
+SECTION 4: data assessment
+Check normality of data.
+```{r data assessment}
+hist(CWR_1to10$Grt, breaks=20)
+# That looks OK, let's try breaking this into populations
+
+ggplot(data=CWR_1to10, aes(x = Grt)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ ., scales = "free")
+# All have long tails to the right, and R especially has an overabundance of small values.
+
+#Wwhat does this look like across generations?
+ggplot(data=CWR_1to10, aes(x = Grt)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Gen, scales = "free")
+
+#How about treatment?
+ggplot(data=CWR_1to10, aes(x = Grt)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+# That looks the best, though I am still curious about logging the data.
+
+CWR_1to10$Log_Grt<-log(CWR_1to10$Grt)
+hist(CWR_1to10$Log_Grt, breaks=20)
+#That looks better
+
+ggplot(data=CWR_1to10, aes(x = Log_Grt)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ ., scales = "free")
+
+ggplot(data=CWR_1to10, aes(x = Log_Grt)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+# OK yes, this now looks quite normal
+
+## What about changes in frond number?
+ggplot(data=CWR_1to10, aes(x = Grt_frd)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+#Looks OK
+
+###########################OK, onto aggregation ###############
+
+hist(CWR_1to10$Agg, breaks=20)
+
+ggplot(data=CWR_1to10, aes(x = Agg)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+# That actually looks pretty OK.
+
+###########################Health and Greenness? ###############
+
+hist(CWR_1to10$Hlth, breaks=20)
+
+ggplot(data=CWR_1to10, aes(x = Hlth)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+# That actually looks pretty OK.
+
+ggplot(data=CWR_1to10, aes(x = Grn1)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+# Could log it?
+
+ggplot(data=CWR_1to10, aes(x = log(Grn1))) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+# Looks better
+
+###########################Frond size? ###############
+
+hist(CWR_1to10$FrAve, breaks=20)
+
+ggplot(data=CWR_1to10, aes(x = FrAve)) + geom_histogram(fill = "white", colour = "black") +  facet_grid(Pop ~ Trt ~ Med, scales = "free")
+# Yeah that looks great.
+
+#OK, so really growth is the only issue here. I've taken the log of it, and we will also try fitting a model with growth as a polynomial term
+
+```
+
+SECTION 5: modelling
+OK, time for some models.
+```{r models}
+
+CWR_NA<-subset(CWR_plt, CWR_plt$Grt!= "NA")
+
+# 1. Gen - continuous. Pos - edge, random effect. Grt - final pixel#, with initial pix as predictor. med*gen*trt. Pop - random
+Mod_grt<-lmer(Pix1 ~ Pix0 + Med*Trt*Gen + (1|Pop) + (1|Edge), data= CWR_plt)
+
+Mod_grt
+Anova(Mod_grt, type=3)
+# Significant effects of Pix0, Med, Gen, and Med:Gen.
+
+# Test random effects one at a time? I'm not sure how to test both at the same time...
+Mod_grt_pop<-lmer(Pix1 ~ Pix0 + Med*Trt*Gen + (1|Pop), data= CWR_plt)
+exactRLRT(Mod_grt_pop)
+
+Mod_grt_edge<-lmer(Pix1 ~ Pix0 + Med*Trt*Gen + (1|Edge), data= CWR_plt)
+exactRLRT(Mod_grt_edge)
+
+```
+
+OK, so now we are going to generate Log Response Ratios for some traits...
+Reference for calculating LRR's: Hedges, L. V., Gurevitch, J., & Curtis, P. S. (1999). The meta-analysis of response ratios in experimental ecology. Ecology, 80(4), 1150-1156.
+```{r}
+# Effect of inoculating plants with microbial communities
+# Start by calculating statistics for each generation for each treatment.
+melt_LRR<-melt(CWR_1to10, id.vars=c("Pop", "Gen","Trt","Med"), measure.vars= "Grt", na.rm = T)
+Sum_LRR<- ddply(melt_LRR, c("Pop", "Med","Trt","Gen","variable"), summarise,
+                mean = mean(value), sd = sd(value), count=length(value),
+                sem = sd(value)/sqrt(length(value)))
+Sum_LRR_plt<-subset(Sum_LRR, Sum_LRR$Trt!= "BAC")
+Sum_LRR_plt<-droplevels(Sum_LRR_plt)
+#LRR for Ctl media plants
+pop<-3
+med<-2
+gen<-10
+
+LRR_ctl<-data.frame(matrix(ncol=5, nrow=pop*med*gen))
+names(LRR_ctl)<-c('Pop','Med','Gen','LRR','SE')
+LRR_ctl$Pop<-c(rep('C', 20), rep('R', 20), rep('W', 20))
+LRR_ctl$Med<-c(rep('Ctl', 10), rep('Salt', 10),rep('Ctl', 10), rep('Salt', 10),rep('Ctl', 10), rep('Salt', 10))
+Gens<-c(1:10)
+LRR_ctl$Gen<-c(rep(Gens, 6))
+
+for (i in 1:10){
+  #C, Ctl
+  LRR_ctl[i,4]<-log(Sum_LRR_plt[i,6]/Sum_LRR_plt[i+10,6])
+  LRR_ctl[i,5]<-sqrt(Sum_LRR_plt[i,9]/Sum_LRR_plt[i,6] + Sum_LRR_plt[i+10,9]/Sum_LRR_plt[i+10,6])
+  #C, Salt
+  LRR_ctl[i+10,4]<-log(Sum_LRR_plt[i+20,6]/Sum_LRR_plt[i+30,6])
+  LRR_ctl[i+10,5]<-sqrt(Sum_LRR_plt[i+20,9]/Sum_LRR_plt[i+20,6] + Sum_LRR_plt[i+30,9]/Sum_LRR_plt[i+30,6])
+  #R, Ctl
+  LRR_ctl[i+20,4]<-log(Sum_LRR_plt[i+40,6]/Sum_LRR_plt[i+50,6])
+  LRR_ctl[i+20,5]<-sqrt(Sum_LRR_plt[i+40,9]/Sum_LRR_plt[i+40,6] + Sum_LRR_plt[i+50,9]/Sum_LRR_plt[i+50,6])
+  #R, Salt
+  LRR_ctl[i+30,4]<-log(Sum_LRR_plt[i+60,6]/Sum_LRR_plt[i+70,6])
+  LRR_ctl[i+30,5]<-sqrt(Sum_LRR_plt[i+60,9]/Sum_LRR_plt[i+60,6] + Sum_LRR_plt[i+70,9]/Sum_LRR_plt[i+70,6])  
+  #W, Ctl
+  LRR_ctl[i+40,4]<-log(Sum_LRR_plt[i+80,6]/Sum_LRR_plt[i+90,6])
+  LRR_ctl[i+40,5]<-sqrt(Sum_LRR_plt[i+80,9]/Sum_LRR_plt[i+80,6] + Sum_LRR_plt[i+90,9]/Sum_LRR_plt[i+90,6])
+  #W, Salt
+  LRR_ctl[i+50,4]<-log(Sum_LRR_plt[i+100,6]/Sum_LRR_plt[i+110,6])
+  LRR_ctl[i+50,5]<-sqrt(Sum_LRR_plt[i+100,9]/Sum_LRR_plt[i+100,6] + Sum_LRR_plt[i+110,9]/Sum_LRR_plt[i+110,6])
+  
+}
+```
