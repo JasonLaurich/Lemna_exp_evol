@@ -1,0 +1,19 @@
+---
+title: "Data analysis"
+author: "JasonL"
+date: "31/03/2022"
+output: github_document
+---
+
+Upload the data, name it, and look at it.
+```{r}
+setwd("C:/Users/jason/Dropbox/My PC (DESKTOP-IOO274E)/Desktop/Data/DuckweedExpEvol/Git_repo/Lemna_exp_evol")
+
+data<-read.table('DW_Exp_Evol_final.txt', na.strings="", header=FALSE, sep='\t')
+
+#There are alot of columns to label here. 
+names(data)<-c('Pop','Media','Trt','Rep','G1ID','G1Pos','G1Edge','G1_notes0','G1_fr0','G1_pix0','G1_per0','G1_grn0','G1_grnper0','G1_notes1','G1_fr1','G1_pix1','G1_per1','G1_grn1','G1_grnper1','G1_abscnt','G2ID','G2Pos','G2Edge','G2_notes0','G2_fr0','G2_pix0','G2_per0','G2_grn0','G2_grnper0','G2_notes1','G2_fr1','G2_pix1','G2_per1','G2_grn1','G2_grnper1','G2_abscnt','G3ID','G3Pos','G3Edge','G3_notes0','G3_fr0','G3_pix0','G3_per0','G3_grn0','G3_grnper0','G3_notes1','G3_fr1','G3_pix1','G3_per1','G3_grn1','G3_grnper1','G3_abscnt','G4ID','G4Pos','G4Edge','G4_notes0','G4_fr0','G4_pix0','G4_per0','G4_grn0','G4_grnper0','G4_notes1','G4_fr1','G4_pix1','G4_per1','G4_grn1','G4_grnper1','G4_abscnt','G5ID','G5Pos','G5Edge','G5_notes0','G5_fr0','G5_pix0','G5_per0','G5_grn0','G5_grnper0','G5_notes1','G5_fr1','G5_pix1','G5_per1','G5_grn1','G5_grnper1','G5_abscnt','G6ID','G6Pos','G6Edge','G6_notes0','G6_fr0','G6_pix0','G6_per0','G6_grn0','G6_grnper0','G6_notes1','G6_fr1','G6_pix1','G6_per1','G6_grn1','G6_grnper1','G6_abscnt','G7ID','G7Pos','G7Edge','G7_notes0','G7_fr0','G7_pix0','G7_per0','G7_grn0','G7_grnper0','G7_notes1','G7_fr1','G7_pix1','G7_per1','G7_grn1','G7_grnper1','G7_abscnt','G8ID','G8Pos','G8Edge','G8_notes0','G8_fr0','G8_pix0','G8_per0','G8_grn0','G8_grnper0','G8_notes1','G8_fr1','G8_pix1','G8_per1','G8_grn1','G8_grnper1','G8_abscnt','G9ID','G9Pos','G9Edge','G9_notes0','G9_fr0','G9_pix0','G9_per0','G9_grn0','G9_grnper0','G9_notes1','G9_fr1','G9_pix1','G9_per1','G9_grn1','G9_grnper1','G9_abscnt', 'G10ID','G10Pos','G10Edge','G10_notes0','G10_fr0','G10_pix0','G10_per0','G10_grn0','G10_grnper0','G10_notes1','G10_fr1','G10_pix1','G10_per1','G10_grn1','G10_grnper1','G10_abscnt')
+
+head(data)
+```
+
